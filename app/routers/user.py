@@ -1,0 +1,193 @@
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Annotated, List
+from sqlmodel import Session, select
+from common import hash_password
+
+from database import get_session
+from model.user import User, UserCreate, UserResponse, UserUpdate
+
+router = APIRouter(
+    prefix="/users",
+    tags=["users"]
+)
+
+SessionDep = Annotated[Session, Depends(get_session)]
+
+@router.post("/add/", response_model=UserResponse)
+def create_user(user_data: UserCreate, session: SessionDep):
+    try:
+        user = User(
+            name=user_data.name,
+            email=user_data.email,
+            phone_number=user_data.phone_number,
+            password=hash_password(user_data.password)
+        )
+        
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/details/", response_model=List[UserResponse])
+def read_users(session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100):
+    try:
+        statement = select(User).offset(offset).limit(limit)
+        users = session.exec(statement).all()
+        return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/detail/{user_id}", response_model=UserResponse)
+def read_user(user_id: str, session: SessionDep):
+    try:
+        statement = select(User).where(User.id == user_id)
+        user = session.exec(statement).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        return user
+    except Exception as e:
+        print(f"Error fetching user: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.put("/edit/{user_id}", response_model=UserResponse)
+def update_user(user_id: str, user_data: UserUpdate, session: SessionDep):
+    try:
+        user = session.get(User, user_id)
+        
+        if not user:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"User with id {user_id} not found"
+            )
+        
+        if user_data.email != user.email:
+            existing_user = session.exec(
+                select(User).where(User.email == user_data.email)
+            ).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="User with this email already exists"
+                )
+        
+        user.name = user_data.name
+        user.email = user_data.email
+        user.phone_number = user_data.phone_number
+        
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error updating user: {str(e)}"
+        )
+    
+@router.patch("/edit_partial/{user_id}", response_model=UserResponse)
+def update_user_partial(user_id: str, user_data: UserUpdate, session: SessionDep):
+    try:
+        user = session.get(User, user_id)
+        
+        if not user:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"User with id {user_id} not found"
+            )
+        
+        update_data = user_data.model_dump(exclude_unset=True)
+        if 'email' in update_data and update_data['email'] != user.email:
+            existing_user = session.exec(
+                select(User).where(User.email == update_data['email'])
+            ).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="User with this email already exists"
+                )
+        
+        for key, value in update_data.items():
+            setattr(user, key, value)
+        
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error updating user: {str(e)}"
+        )
+    
+
+@router.delete("/delete/{user_id}")
+def delete_user(user_id: str, session: SessionDep):
+    try:
+        user = session.get(User, user_id)
+        
+        if not user:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"User with id {user_id} not found"
+            )
+        
+        session.delete(user)
+        session.commit()
+        
+        return {
+            "message": f"User with id {user_id} deleted successfully",
+            "deleted_user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error deleting user: {str(e)}"
+        )
+    
+@router.delete("/bulk-delete/")
+def delete_users_bulk(user_ids: List[str], session: SessionDep):
+    try:
+        deleted_users = []
+        not_found = []
+        
+        for user_id in user_ids:
+            user = session.get(User, user_id)
+            if user:
+                session.delete(user)
+                deleted_users.append({"id": user_id, "name": user.name, "email": user.email})
+            else:
+                not_found.append(user_id)
+        
+        session.commit()
+        
+        return {
+            "message": f"Successfully deleted {len(deleted_users)} users",
+            "deleted_users": deleted_users,
+            "not_found": not_found
+        }
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error deleting users: {str(e)}"
+        )
