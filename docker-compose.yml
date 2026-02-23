@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  fastapi:
+    build: .
+    container_name: shell_buy_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app   # 🔥 This enables live code sync
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+    command: uvicorn app.app:app --host 0.0.0.0 --port 8000 --reload
+    restart: always
+
+  redis:
+    image: redis:latest
+    container_name: redis_server
+    ports:
+      - "6379:6379"
+    restart: always
