@@ -33,3 +33,7 @@ class UserResponse(CommonBaseModel):
     name: str
     email: str
     phone_number: Optional[str] = None
+
+class UserLogin(SQLModel):
+    email: str
+    password: str

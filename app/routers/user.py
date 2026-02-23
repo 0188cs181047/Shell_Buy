@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import Annotated, List
 from sqlmodel import Session, select
 from common import hash_password
 
 from database import get_session
 from model.user import User, UserCreate, UserResponse, UserUpdate
+from model.security import AccountSecurity
+from core.security import get_current_user
 
 router = APIRouter(
     prefix="/users",
@@ -13,8 +15,17 @@ router = APIRouter(
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
-@router.post("/add/", response_model=UserResponse)
-def create_user(user_data: UserCreate, session: SessionDep):
+@router.post("/add/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(user_data: UserCreate, session: SessionDep, current_user: User = Depends(get_current_user)):
+    existing_user = session.exec(
+        select(User).where(User.email == user_data.email)
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
     try:
         user = User(
             name=user_data.name,
@@ -26,13 +37,25 @@ def create_user(user_data: UserCreate, session: SessionDep):
         session.add(user)
         session.commit()
         session.refresh(user)
+
+        account_security = AccountSecurity(
+            user_id=user.id,
+            is_active=True,
+            is_verified=False,
+            is_superuser=False,
+            failed_login_attempts=0
+        )
+
+        session.add(account_security)
+        session.commit()
         return user
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    
 
-@router.get("/details/", response_model=List[UserResponse])
-def read_users(session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100):
+@router.get("/details/", response_model=List[UserResponse],status_code=status.HTTP_200_OK)
+def read_users(session: SessionDep, current_user: User = Depends(get_current_user), offset: int = 0, limit: Annotated[int, Query(le=100)] = 100):
     try:
         statement = select(User).offset(offset).limit(limit)
         users = session.exec(statement).all()
@@ -40,8 +63,8 @@ def read_users(session: SessionDep, offset: int = 0, limit: Annotated[int, Query
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/detail/{user_id}", response_model=UserResponse)
-def read_user(user_id: str, session: SessionDep):
+@router.get("/detail/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
+def read_user(user_id: str, session: SessionDep, current_user: User = Depends(get_current_user)):
     try:
         statement = select(User).where(User.id == user_id)
         user = session.exec(statement).first()
@@ -54,8 +77,8 @@ def read_user(user_id: str, session: SessionDep):
         print(f"Error fetching user: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.put("/edit/{user_id}", response_model=UserResponse)
-def update_user(user_id: str, user_data: UserUpdate, session: SessionDep):
+@router.put("/edit/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
+def update_user(user_id: str, user_data: UserUpdate, session: SessionDep, current_user: User = Depends(get_current_user)):
     try:
         user = session.get(User, user_id)
         
@@ -93,8 +116,8 @@ def update_user(user_id: str, user_data: UserUpdate, session: SessionDep):
             detail=f"Error updating user: {str(e)}"
         )
     
-@router.patch("/edit_partial/{user_id}", response_model=UserResponse)
-def update_user_partial(user_id: str, user_data: UserUpdate, session: SessionDep):
+@router.patch("/edit_partial/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
+def update_user_partial(user_id: str, user_data: UserUpdate, session: SessionDep, current_user: User = Depends(get_current_user)):
     try:
         user = session.get(User, user_id)
         
@@ -133,8 +156,8 @@ def update_user_partial(user_id: str, user_data: UserUpdate, session: SessionDep
         )
     
 
-@router.delete("/delete/{user_id}")
-def delete_user(user_id: str, session: SessionDep):
+@router.delete("/delete/{user_id}", status_code=status.HTTP_200_OK)
+def delete_user(user_id: str, session: SessionDep, current_user: User = Depends(get_current_user)):
     try:
         user = session.get(User, user_id)
         
@@ -164,8 +187,8 @@ def delete_user(user_id: str, session: SessionDep):
             detail=f"Error deleting user: {str(e)}"
         )
     
-@router.delete("/bulk-delete/")
-def delete_users_bulk(user_ids: List[str], session: SessionDep):
+@router.delete("/bulk-delete/", status_code=status.HTTP_200_OK)
+def delete_users_bulk(user_ids: List[str], session: SessionDep, current_user: User = Depends(get_current_user)):
     try:
         deleted_users = []
         not_found = []
