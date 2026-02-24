@@ -1,16 +1,17 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlmodel import Session, select
 from core.security import hash_password
 from model.user import User, UserCreate, UserResponse
 from model import security
 from database import get_session
+from services.send_email import send_register_email
 
 router = APIRouter(prefix="/auth/register", tags=["auth"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(*, session: SessionDep, user_in: UserCreate):
+async def register(*, session: SessionDep, user_in: UserCreate, background_tasks: BackgroundTasks):
     existing_user = session.exec(
         select(User).where(User.email == user_in.email)
     ).first()
@@ -43,5 +44,11 @@ async def register(*, session: SessionDep, user_in: UserCreate):
 
     session.add(account_security)
     session.commit()
+
+    background_tasks.add_task(
+        send_register_email,
+        user.email,
+        user.name
+    )
 
     return user
