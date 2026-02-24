@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import Annotated, List
 from sqlmodel import Session, select
-from common import hash_password
+from core.security import hash_password
 
 from database import get_session
 from model.user import User, UserCreate, UserResponse, UserUpdate
