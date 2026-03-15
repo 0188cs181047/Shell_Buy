@@ -5,9 +5,7 @@ from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 
-from model import user, login, security, token
-
-
+from model import user, login, security, token, product
 
 load_dotenv()
 
