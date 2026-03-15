@@ -3,6 +3,8 @@ import uvicorn
 from routers import user
 from routers.auth import token_referesh, login, register, auth
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from routers import product
 
 app = FastAPI(title="My API", version="1.0.0")
 
@@ -14,6 +16,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 @app.get("/")
 def hello_word():
     return "hello word"
@@ -24,6 +28,7 @@ app.include_router(auth.router)
 app.include_router(login.router)
 app.include_router(register.router)
 app.include_router(token_referesh.router)
+app.include_router(product.router)
 
 
 if __name__ == "__main__":
