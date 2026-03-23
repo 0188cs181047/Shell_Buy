@@ -11,6 +11,7 @@ from core.security import get_current_user
 from model.user import User
 from model.product import ProductCreate, ProductResponse, ProductImage, Product
 from core.local_common import upload_images, upload_image, remove_image
+from model.product_publish import ProductPublishCreate, ProductPublish, ProductPublishResponse, ProductPublishUpdate, PublishType
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -286,7 +287,8 @@ def delete_product_image(
 @router.get("/see_production_image/{image_id}", status_code=status.HTTP_200_OK)
 def get_product_image(
     image_id: str,
-    session: SessionDep
+    session: SessionDep,
+    current_user: User = Depends(get_current_user)
 ):
 
     product_image = session.get(ProductImage, image_id)
@@ -304,3 +306,82 @@ def get_product_image(
             detail="Image file not found"
         )
     return FileResponse(file_path)
+
+@router.post("/publish", response_model=ProductPublishResponse)
+def publish_product(
+    data: ProductPublishCreate, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+
+    product = session.exec(
+        select(Product).where(Product.id == data.product_id)
+    ).first()
+
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    publish = session.exec(
+        select(ProductPublish).where(ProductPublish.product_id == data.product_id)
+    ).first()
+
+    if publish:
+        publish.publish_type = data.publish_type
+        publish.amount = data.amount
+    else:
+        publish = ProductPublish(
+            product_id=data.product_id,
+            publish_type=data.publish_type,
+            amount=data.amount
+        )
+        session.add(publish)
+
+    product.publish = True
+    product.status = "published"
+
+    session.add(product)
+    session.commit()
+    session.refresh(publish)
+
+    return publish
+
+@router.put("/publish/{product_id}")
+def update_publish(
+    product_id: str,
+    data: ProductPublishUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    publish = session.exec(
+        select(ProductPublish).where(ProductPublish.product_id == product_id)
+    ).first()
+
+    if not publish:
+        raise HTTPException(status_code=404, detail="Publish record not found")
+
+    if data.publish_type is not None:
+        publish.publish_type = data.publish_type
+
+    if data.amount is not None:
+        publish.amount = data.amount
+
+    if data.publish_type == PublishType.FREE:
+        publish.amount = None
+
+    if data.publish_type == PublishType.EXCHANGE:
+        publish.amount = None
+
+    product = session.exec(
+        select(Product).where(Product.id == product_id)
+    ).first()
+
+    if product:
+        product.publish = True
+        product.status = "published"
+        session.add(product)
+
+    session.add(publish)
+    session.commit()
+    session.refresh(publish)
+
+    return publish

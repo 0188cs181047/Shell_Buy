@@ -4,6 +4,7 @@ from .base import CommonBaseModel
 from typing import Optional, List
 from datetime import datetime
 from fastapi import Form
+from .product_publish import PublishType
 
 class Product(CommonBaseModel, table=True):
     __tablename__ = "product"
@@ -24,8 +25,11 @@ class Product(CommonBaseModel, table=True):
 
     publish: bool = False
     status: str = Field(default="draft", max_length=20)
-    
 
+    publish_detail: Optional["ProductPublish"] = Relationship(
+        back_populates="product"
+    )
+    
 class ProductImage(CommonBaseModel, table=True):
     __tablename__ = "product_images"
 
@@ -73,6 +77,10 @@ class ProductImageResponse(SQLModel):
     id: str
     image_url: str
 
+class ProductPublishResponse(SQLModel):
+    publish_type: PublishType
+    amount: Optional[float] = None
+
 class ProductResponse(SQLModel):
     id: str
     user_id: str
@@ -95,3 +103,5 @@ class ProductResponse(SQLModel):
     updated_at: datetime
 
     images: List[ProductImageResponse] = []
+    publish_detail: Optional[ProductPublishResponse] = None
+    
