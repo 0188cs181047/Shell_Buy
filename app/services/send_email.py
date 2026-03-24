@@ -19,3 +19,32 @@ async def send_register_email(email: str, username: str):
 
     fm = FastMail(conf)
     await fm.send_message(message)
+
+async def send_category_assign_email(email: str, name: str, category_name: str, start: int, end: int):
+    
+    subject = "Your Category Has Been Updated"
+
+    body = f"""
+    Hi {name},
+
+    Your account category has been updated.
+
+    Category: {category_name}
+    Access Level: {start} - {end}
+
+    You now have updated permissions in the system.
+
+    Thanks,
+    Team
+    """
+
+    # 👉 Use your existing email logic here
+    message = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        body=body,
+        subtype="html"
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
