@@ -1,10 +1,9 @@
 from fastapi import FastAPI
 import uvicorn
-from routers import user
+from routers import user, product, user_category
 from routers.auth import token_referesh, login, register, auth
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from routers import product
 
 app = FastAPI(title="My API", version="1.0.0")
 
@@ -29,6 +28,7 @@ app.include_router(login.router)
 app.include_router(register.router)
 app.include_router(token_referesh.router)
 app.include_router(product.router)
+app.include_router(user_category.router)
 
 
 if __name__ == "__main__":

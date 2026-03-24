@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
 from typing import Annotated, List
 from sqlmodel import Session, select
 from core.security import hash_password
 
 from database import get_session
-from model.user import User, UserCreate, UserResponse, UserUpdate
+from model.user import User, UserCreate, UserResponse, UserUpdate, AssignUserCategory
 from model.security import AccountSecurity
 from core.security import get_current_user
+from services.send_email import send_category_assign_email
+from model.user_category import UserCategory
 
 router = APIRouter(
     prefix="/users",
@@ -214,3 +216,43 @@ def delete_users_bulk(user_ids: List[str], session: SessionDep, current_user: Us
             status_code=500, 
             detail=f"Error deleting users: {str(e)}"
         )
+    
+@router.put("/{user_id}/assign-category", status_code=status.HTTP_200_OK)
+def assign_user_category(
+    user_id: str,
+    data: AssignUserCategory,
+    session: SessionDep,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    # Check user
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check category
+    category = session.get(UserCategory, data.category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    # Assign category
+    user.category_id = category.id
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    # Trigger email in background
+    background_tasks.add_task(
+        send_category_assign_email,
+        user.email,
+        user.name,
+        category.name,
+        category.access_level_start,
+        category.access_level_end
+    )
+
+    return {
+        "message": "Category assigned successfully & email sent",
+        "user_id": user.id,
+        "category": category.name
+    }

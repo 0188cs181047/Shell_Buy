@@ -1,4 +1,4 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Relationship
 from typing import Optional
 from .base import CommonBaseModel
 from pydantic import validator
@@ -10,6 +10,8 @@ class User(CommonBaseModel, table=True):
     email: str = Field(index=True, unique=True, max_length=255)
     phone_number: Optional[str] = Field(default=None, max_length=15)
     password: str
+    category_id: Optional[int] = Field(default=None, foreign_key="user_categories.id")
+    category: Optional["UserCategory"] = Relationship(back_populates="users")
 
 class UserCreate(SQLModel):
     name: str = Field(max_length=255)
@@ -29,11 +31,21 @@ class UserUpdate(SQLModel):
     email: Optional[str] = Field(default=None, max_length=255)
     phone_number: Optional[str] = Field(default=None, max_length=15)
 
+class UserCategoryResponse(SQLModel):
+    id: Optional[str]
+    name: str
+    access_level_start: int
+    access_level_end: int
+
 class UserResponse(CommonBaseModel):
     name: str
     email: str
     phone_number: Optional[str] = None
+    category: Optional[UserCategoryResponse] = None  
 
 class UserLogin(SQLModel):
     email: str
     password: str
+
+class AssignUserCategory(SQLModel):
+    category_id: Optional[str]
