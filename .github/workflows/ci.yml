@@ -1,0 +1,90 @@
+name: FastAPI CI (MySQL)
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 12345
+          MYSQL_DATABASE: shell_buy_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -p12345"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: mysql+pymysql://root:12345@localhost:3306/shell_buy_test
+      PYTHONPATH: .
+
+    steps:
+      # ✅ 1. Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # ✅ 2. Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      # ✅ 3. Install dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov flake8 black isort mypy bandit pymysql
+
+      # ✅ 4. Wait for MySQL
+      - name: Wait for MySQL
+        run: |
+          until mysqladmin ping -h "127.0.0.1" -P 3306 -u root -p12345 --silent; do
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+
+      # ✅ 5. Lint Check
+      - name: Lint Check (flake8)
+        run: flake8 .
+
+      # ✅ 6. Format Check
+      - name: Format Check (black)
+        run: black --check .
+
+      # ✅ 7. Import Order Check
+      - name: Import Check (isort)
+        run: isort . --check-only
+
+      # ✅ 8. Type Check
+      - name: Type Check (mypy)
+        run: mypy .
+
+      # ✅ 9. Security Scan
+      - name: Security Scan (bandit)
+        run: bandit -r .
+
+      # ✅ 10. Run Tests
+      - name: Run Tests (pytest)
+        run: |
+          pytest --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing
+
+      # ✅ 11. Run App (optional)
+      - name: Run App
+        run: |
+          uvicorn app.app:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+
+      # ✅ 12. API Check
+      - name: API Check
+        run: curl --fail http://localhost:8000/docs

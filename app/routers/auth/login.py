@@ -2,16 +2,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
-from core.security import (
+from app.core.security import (
     create_access_token, 
     create_refresh_token,
     verify_password,
 )
-from model.user import User
-from model.auth import Token
-from model import security, token
-from model.login import LoginHistory
-from database import get_session
+from app.model.user import User
+from app.model.auth import Token
+from app.model import security, token
+from app.model.login import LoginHistory
+from app.database import get_session
 from datetime import datetime, timedelta
 import os
 

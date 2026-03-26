@@ -1,5 +1,5 @@
 from fastapi_mail import FastMail, MessageSchema
-from core.email import conf
+from app.core.email import conf
 
 async def send_register_email(email: str, username: str):
     subject = "Welcome to Our Platform"

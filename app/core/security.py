@@ -5,8 +5,8 @@ from passlib.context import CryptContext
 import os
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session
-from database import get_session
-from model.user import User
+from app.database import get_session
+from app.model.user import User
 from fastapi import HTTPException, status, Depends
 
 SECRET_KEY = os.getenv("SECRET_KEY")
