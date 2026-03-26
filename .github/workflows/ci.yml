@@ -37,6 +37,7 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest pymysql
+          pip install pytest pymysql httpx
 
       - name: Wait for MySQL
         run: |
