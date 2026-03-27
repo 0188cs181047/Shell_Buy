@@ -10,7 +10,7 @@ class User(CommonBaseModel, table=True):
     email: str = Field(index=True, unique=True, max_length=255)
     phone_number: Optional[str] = Field(default=None, max_length=15)
     password: str
-    category_id: Optional[int] = Field(default=None, foreign_key="user_categories.id")
+    category_id: Optional[str] = Field(default=None, foreign_key="user_categories.id")
     category: Optional["UserCategory"] = Relationship(back_populates="users")
 
 class UserCreate(SQLModel):
