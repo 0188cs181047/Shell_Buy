@@ -8,8 +8,11 @@ from sqlmodel import Session
 from app.database import get_session
 from app.model.user import User
 from fastapi import HTTPException, status, Depends
+from dotenv import load_dotenv
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+load_dotenv()  
+
+SECRET_KEY = os.getenv("SECRET_KEY", "uWqF09wWptiQsB+NCaCp31QkXQqxVl3dt+RsjOYvuPM=")
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY environment variable is not set")
 

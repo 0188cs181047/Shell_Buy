@@ -52,4 +52,6 @@ jobs:
           echo "MySQL is ready!"
 
       - name: Run tests
+        env:
+          SECRET_KEY: "uWqF09wWptiQsB+NCaCp31QkXQqxVl3dt+RsjOYvuPM="
         run: pytest
