@@ -5,10 +5,6 @@ from app.routers.auth import token_referesh, login, register, auth
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
 app = FastAPI(title="My API", version="1.0.0")
 
 app.add_middleware(
@@ -19,8 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
+if os.path.exists("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
+    
 @app.get("/")
 def hello_word():
     return "hello word"
