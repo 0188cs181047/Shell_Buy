@@ -20,10 +20,14 @@ jobs:
           --health-cmd="mysqladmin ping -h localhost -p12345"
           --health-interval=5s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10
 
     env:
-      DATABASE_URL: mysql+pymysql://root:12345@127.0.0.1:3306/shell_buy_test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: 12345
+      DB_NAME: shell_buy_test
       PYTHONPATH: .
 
     steps:
@@ -33,17 +37,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
+          pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pymysql
-          pip install pytest pymysql httpx
+          pip install pytest pymysql httpx python-dotenv sqlmodel
 
-      - name: Wait for MySQL
+      - name: Wait for MySQL to be ready
         run: |
-          until mysqladmin ping -h 127.0.0.1 -u root -p12345 --silent; do
+          echo "Waiting for MySQL..."
+          until mysqladmin ping -h $DB_HOST -u $DB_USER -p$DB_PASSWORD --silent; do
             sleep 2
           done
+          echo "MySQL is ready!"
 
       - name: Run tests
         run: pytest
