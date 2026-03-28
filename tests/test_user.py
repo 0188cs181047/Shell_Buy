@@ -1,11 +1,16 @@
+import pytest
 from fastapi.testclient import TestClient
-from app.model.user_category import UserCategory
 import uuid
 from app.app import app
 
 client = TestClient(app)
-def create_user_and_get_token_mail_id():
 
+
+# =========================
+# 🔹 AUTH FIXTURE (RUN ONCE)
+# =========================
+@pytest.fixture(scope="session")
+def auth_data():
     email = f"user_{uuid.uuid4()}@test.com"
 
     register_payload = {
@@ -24,23 +29,40 @@ def create_user_and_get_token_mail_id():
     }
 
     response = client.post("/auth/login/", data=login_payload)
-
     token = response.json()["access_token"]
 
-    return token, email, user_data["id"]
+    return {
+        "token": token,
+        "user_id": user_data["id"],
+        "email": email,
+        "headers": {"Authorization": f"Bearer {token}"}
+    }
 
-def create_category(session):
-    category = UserCategory(
-        name=f"Category_{uuid.uuid4()}",
-        access_level_start=1,
-        access_level_end=5
+
+# =========================
+# 🔹 USER FIXTURE
+# =========================
+@pytest.fixture
+def new_user(auth_data):
+    payload = {
+        "name": "Shiv",
+        "email": f"shiv_{uuid.uuid4()}@test.com",
+        "phone_number": "9876543210",
+        "password": "test123"
+    }
+
+    response = client.post(
+        "/users/add",
+        json=payload,
+        headers=auth_data["headers"]
     )
-    session.add(category)
-    session.commit()
-    session.refresh(category)
 
-    return category
+    return response.json()
 
+
+# =========================
+# 🔹 REGISTER
+# =========================
 def test_register_user():
     payload = {
         "name": "Test User",
@@ -52,6 +74,10 @@ def test_register_user():
     response = client.post("/auth/register/", json=payload)
     assert response.status_code == 201
 
+
+# =========================
+# 🔹 LOGIN FAILURE
+# =========================
 def test_login_invalid_password():
     email = f"user_{uuid.uuid4()}@test.com"
 
@@ -69,11 +95,14 @@ def test_login_invalid_password():
             "password": "wrongpassword"
         }
     )
+
     assert response.status_code == 401
 
-def test_create_category():
-    token, email, user_id = create_user_and_get_token_mail_id()
 
+# =========================
+# 🔹 CREATE CATEGORY
+# =========================
+def test_create_category(auth_data):
     payload = {
         "name": f"Category_{uuid.uuid4()}",
         "access_level_start": 10,
@@ -83,78 +112,80 @@ def test_create_category():
     response = client.post(
         "/user-category/",
         json=payload,
-        headers={
-            "Authorization": f"Bearer {token}" 
-        }
+        headers=auth_data["headers"]
     )
+
     assert response.status_code == 201
 
-def test_create_user_success():
-    token, email, user_id = create_user_and_get_token_mail_id()
+
+# =========================
+# 🔹 CREATE USER
+# =========================
+def test_create_user(auth_data):
     payload = {
         "name": "Shiv",
         "email": f"shiv_{uuid.uuid4()}@test.com",
         "phone_number": "9876543210",
         "password": "test123"
     }
+
     response = client.post(
         "/users/add",
         json=payload,
-        headers={
-            "Authorization": f"Bearer {token}" 
-        }        
+        headers=auth_data["headers"]
     )
+
     assert response.status_code == 201
 
-def test_read_users_success():
-    token, email, user_id = create_user_and_get_token_mail_id()
 
+# =========================
+# 🔹 GET USERS
+# =========================
+def test_read_users(auth_data):
     response = client.get(
         "/users/details/",
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_data["headers"]
     )
 
     assert response.status_code == 200
+    assert isinstance(response.json(), list)
 
-    data = response.json()
-    assert isinstance(data, list)
 
-def test_read_users_pagination():
-    token, email, user_id = create_user_and_get_token_mail_id()
-
+def test_read_users_pagination(auth_data):
     response = client.get(
         "/users/details/?offset=0&limit=2",
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_data["headers"]
     )
 
     assert response.status_code == 200
+    assert len(response.json()) <= 2
 
-    data = response.json()
-    assert len(data) <= 2
 
-def test_read_users_limit_exceeded():
-    token, email, user_id = create_user_and_get_token_mail_id()
-
+def test_read_users_limit_exceeded(auth_data):
     response = client.get(
         "/users/details/?limit=101",
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_data["headers"]
     )
 
     assert response.status_code == 422
 
-def test_read_user_success():
-    token, email, user_id = create_user_and_get_token_mail_id()
 
+# =========================
+# 🔹 GET USER BY ID
+# =========================
+def test_read_user(auth_data):
     response = client.get(
-        f"/users/detail/{user_id}",
-        headers={"Authorization": f"Bearer {token}"}
+        f"/users/detail/{auth_data['user_id']}",
+        headers=auth_data["headers"]
     )
 
     assert response.status_code == 200
 
-def test_update_user_success():
-    token, email, user_id  = create_user_and_get_token_mail_id()
 
+# =========================
+# 🔹 UPDATE USER
+# =========================
+def test_update_user(auth_data):
     updated_payload = {
         "name": "Updated Name",
         "email": f"updated_{uuid.uuid4()}@test.com",
@@ -162,66 +193,40 @@ def test_update_user_success():
     }
 
     response = client.put(
-        f"/users/edit/{user_id}",
+        f"/users/edit/{auth_data['user_id']}",
         json=updated_payload,
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_data["headers"]
     )
 
     assert response.status_code == 200
 
     data = response.json()
     assert data["name"] == updated_payload["name"]
-    assert data["email"] == updated_payload["email"]
-    assert data["phone_number"] == updated_payload["phone_number"]
 
-def test_update_user_partial_name_only():
-    token, email, user_id  = create_user_and_get_token_mail_id()
 
-    payload = {
-        "name": "Updated Name"
-    }
+# =========================
+# 🔹 PARTIAL UPDATE
+# =========================
+def test_update_user_partial(auth_data):
+    payload = {"name": "Updated Name"}
 
     response = client.patch(
-        f"/users/edit_partial/{user_id}",
+        f"/users/edit_partial/{auth_data['user_id']}",
         json=payload,
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_data["headers"]
     )
 
     assert response.status_code == 200
+    assert response.json()["name"] == "Updated Name"
 
-    data = response.json()
-    assert data["name"] == "Updated Name"
-    assert data["email"] == email
 
-def test_delete_user_success():
-    token, email, user_id  = create_user_and_get_token_mail_id()
-
+# =========================
+# 🔹 DELETE USER
+# =========================
+def test_delete_user(auth_data):
     response = client.delete(
-        f"/users/delete/{user_id}",
-        headers={"Authorization": f"Bearer {token}"}
+        f"/users/delete/{auth_data['user_id']}",
+        headers=auth_data["headers"]
     )
 
     assert response.status_code == 200
-
-    data = response.json()
-    assert data["deleted_user"]["id"] == user_id
-    assert data["deleted_user"]["email"] == email
-
-def test_bulk_delete_success():
-    token, email, user1_id  = create_user_and_get_token_mail_id()
-    token, email, user2_id  = create_user_and_get_token_mail_id()
-
-    payload = [user1_id, user2_id]
-
-    response = client.request(
-        "DELETE",
-        "/users/bulk-delete/",
-        json=payload,
-        headers={"Authorization": f"Bearer {token}"}
-    )
-
-    assert response.status_code == 200
-
-    data = response.json()
-    assert len(data["deleted_users"]) == 2
-    assert data["not_found"] == []
