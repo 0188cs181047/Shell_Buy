@@ -6,12 +6,12 @@ from typing import List
 from fastapi.responses import FileResponse
 import os
 
-from database import get_session
-from core.security import get_current_user
-from model.user import User
-from model.product import ProductCreate, ProductResponse, ProductImage, Product
-from core.local_common import upload_images, upload_image, remove_image
-from model.product_publish import ProductPublishCreate, ProductPublish, ProductPublishResponse, ProductPublishUpdate, PublishType
+from app.database import get_session
+from app.core.security import get_current_user
+from app.model.user import User
+from app.model.product import ProductCreate, ProductResponse, ProductImage, Product
+from app.core.local_common import upload_images, upload_image, remove_image
+from app.model.product_publish import ProductPublishCreate, ProductPublish, ProductPublishResponse, ProductPublishUpdate, PublishType
 
 router = APIRouter(prefix="/products", tags=["products"])
 

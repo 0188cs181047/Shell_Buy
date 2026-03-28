@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 import uvicorn
-from routers import user, product, user_category
-from routers.auth import token_referesh, login, register, auth
+from app.routers import user, product, user_category
+from app.routers.auth import token_referesh, login, register, auth
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-
+import os
 app = FastAPI(title="My API", version="1.0.0")
 
 app.add_middleware(
@@ -15,8 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
+if os.path.exists("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
+    
 @app.get("/")
 def hello_word():
     return "hello word"

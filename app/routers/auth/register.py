@@ -1,16 +1,15 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlmodel import Session, select
-from core.security import hash_password
-from model.user import User, UserCreate, UserResponse
-from model import security
-from database import get_session
-from services.send_email import send_register_email
+from app.core.security import hash_password
+from app.model.user import User, UserCreate, UserResponse
+from app.model import security
+from app.database import get_session
+from app.services.send_email import send_register_email
+from app.model.user_category import UserCategory
 
 router = APIRouter(prefix="/auth/register", tags=["auth"])
 SessionDep = Annotated[Session, Depends(get_session)]
-
-from model.user_category import UserCategory
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(*, session: SessionDep, user_in: UserCreate, background_tasks: BackgroundTasks):

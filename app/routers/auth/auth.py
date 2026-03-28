@@ -1,10 +1,10 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
-from model.user import User, UserResponse
-from model import security
-from database import get_session
-from core.security import get_current_user
+from app.model.user import User, UserResponse
+from app.model import security
+from app.database import get_session
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 SessionDep = Annotated[Session, Depends(get_session)]

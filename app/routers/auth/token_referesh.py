@@ -1,15 +1,15 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlmodel import Session, select
-from core.security import (
+from app.core.security import (
     create_access_token, 
     create_refresh_token,
     verify_token
 )
-from model.user import User
-from model.auth import Token, RefreshTokenRequest
-from model import security, token
-from database import get_session
+from app.model.user import User
+from app.model.auth import Token, RefreshTokenRequest
+from app.model import security, token
+from app.database import get_session
 from datetime import datetime, timedelta
 import os
 

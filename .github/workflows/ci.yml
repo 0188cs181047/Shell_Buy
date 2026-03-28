@@ -1,0 +1,57 @@
+name: FastAPI CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 12345
+          MYSQL_DATABASE: shell_buy_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -p12345"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: 12345
+      DB_NAME: shell_buy_test
+      PYTHONPATH: .
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pymysql httpx python-dotenv sqlmodel
+
+      - name: Wait for MySQL to be ready
+        run: |
+          echo "Waiting for MySQL..."
+          until mysqladmin ping -h $DB_HOST -u $DB_USER -p$DB_PASSWORD --silent; do
+            sleep 2
+          done
+          echo "MySQL is ready!"
+
+      - name: Run tests
+        env:
+          SECRET_KEY: "uWqF09wWptiQsB+NCaCp31QkXQqxVl3dt+RsjOYvuPM="
+        run: pytest

@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import Annotated, List
 
-from database import get_session
-from model.user_category import UserCategory, UserCategoryCreate, UserCategoryResponse
-from model.user import User
-from core.security import get_current_user
+from app.database import get_session
+from app.model.user_category import UserCategory, UserCategoryCreate, UserCategoryResponse
+from app.model.user import User
+from app.core.security import get_current_user
 
 
 router = APIRouter(prefix="/user-category", tags=["User Category"])
