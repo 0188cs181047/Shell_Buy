@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Razorpay Payment</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+
+<h2>Make Payment</h2>
+<button onclick="startPayment()">Pay Now</button>
+
+<script>
+async function startPayment() {
+
+  //  Step 1: Call your backend to create transaction
+  const createRes = await fetch("http://127.0.0.1:8000/api/transactions/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ODBiM2QxYS03NGYxLTQzNGQtYjJmYy1iN2QwNzk4MjhkYjIiLCJleHAiOjE3NzQ3Nzc0MjUsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzQ3NzU2MjV9.atOkQncrqVa6diqcf7uLcXetR4W_QCgsG67td0Mdw7c"
+    },
+    body: JSON.stringify({
+      product_id: "e94cc2f3-6378-44f4-a159-506aa0d8b91d",
+      amount: 100
+    })
+  });
+
+  const createData = await createRes.json();
+
+  console.log("Create Response:", createData);
+
+  const order_id = createData.order_id;
+  const transaction_id = createData.transaction_id;
+
+  //  Step 2: Open Razorpay Checkout
+  var options = {
+    key: "rzp_test_SWyQodx2gCdyph",
+    amount: createData.amount * 100,
+    currency: createData.currency,
+    order_id: order_id,
+
+    handler: async function (response) {
+      console.log("Payment Success:", response);
+
+      // 🔥 Step 3: Send payment details to backend
+      const verifyRes = await fetch("http://127.0.0.1:8000/api/transactions/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ODBiM2QxYS03NGYxLTQzNGQtYjJmYy1iN2QwNzk4MjhkYjIiLCJleHAiOjE3NzQ3Nzc0MjUsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzQ3NzU2MjV9.atOkQncrqVa6diqcf7uLcXetR4W_QCgsG67td0Mdw7c"
+        },
+        body: JSON.stringify({
+          transaction_id: transaction_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature
+        })
+      });
+
+      const verifyData = await verifyRes.json();
+      console.log("Verify Response:", verifyData);
+
+      alert("Payment Successful!");
+    },
+
+    modal: {
+      ondismiss: function () {
+        alert("Payment Cancelled");
+      }
+    }
+  };
+
+  var rzp = new Razorpay(options);
+  rzp.open();
+}
+</script>
+
+</body>
+</html>
