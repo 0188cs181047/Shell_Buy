@@ -22,15 +22,15 @@ if os.path.exists("app/static"):
 def hello_word():
     return "hello word"
 
-app.include_router(user.router, prefix="/api")
-app.include_router(auth.router, prefix="/api")
-app.include_router(auth.router, prefix="/api")
+app.include_router(user.router)
+app.include_router(auth.router)
+app.include_router(auth.router)
 app.include_router(login.router)
-app.include_router(register.router, prefix="/api")
-app.include_router(token_referesh.router, prefix="/api")
-app.include_router(product.router, prefix="/api")
-app.include_router(user_category.router, prefix="/api")
-app.include_router(payment.router, prefix="/api")
+app.include_router(register.router)
+app.include_router(token_referesh.router)
+app.include_router(product.router)
+app.include_router(user_category.router)
+app.include_router(payment.router)
 
 
 if __name__ == "__main__":
