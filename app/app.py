@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
-from app.routers import user, product, user_category, payment, ai
+from app.routers import user, product, user_category, payment, ai, knowledge
 from app.routers.auth import token_referesh, login, register, auth
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -32,6 +32,7 @@ app.include_router(product.router)
 app.include_router(user_category.router)
 app.include_router(payment.router)
 app.include_router(ai.router)
+app.include_router(knowledge.router)
 
 
 if __name__ == "__main__":

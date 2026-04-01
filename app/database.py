@@ -5,7 +5,7 @@ from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 
-from app.model import user, login, security, token, product, product_publish, user_category, payment, ai
+from app.model import user, login, security, token, product, product_publish, user_category, payment, ai, knowledge
 
 # Load environment variables
 load_dotenv()

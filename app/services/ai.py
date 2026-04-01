@@ -2,6 +2,8 @@ from app.model.payment import Transaction
 from groq import Groq
 from dotenv import load_dotenv
 import os
+from app.services.vector_db import search_data, store_data
+import uuid
 
 load_dotenv()
 
@@ -61,46 +63,99 @@ def get_user_details(user):
         "phone_number": user.phone_number
     }
 
-def build_prompt(user_query, user_data, transactions, summary):
+def build_vector_query(user_query, user_data):
+    return user_query.strip()
+
+def build_ai_prompt(user_query, user_data, transactions, summary, context):
     return f"""
-            You are a smart financial assistant AI.
+    You are a smart financial assistant AI.
 
-            User Question:
-            {user_query}
+    🔹 Context (Policies / Memory / Knowledge):
+    {context}
 
-            User Details:
-            {user_data}
+    🔹 User Question:
+    {user_query}
 
-            Transaction Data:
-            {transactions}
+    🔹 User Details:
+    {user_data}
 
-            Summary:
-            {summary}
+    🔹 Transactions:
+    {transactions}
 
-            Instructions:
-            - If user asks about profile → use User Details
-            - If user asks about transactions → use Transaction Data
-            - If both → combine answer
-            - Be accurate
-            - Return JSON only
+    🔹 Summary:
+    {summary}
 
-            Format:
-            {{
-            "answer": "...",
-            "type": "profile | transaction | mixed",
-            "graph": {{
-                "labels": [...],
-                "values": [...]
-            }}
-            }}
-        """
+    Instructions:
+    - Use context if relevant
+    - Follow business rules strictly
+    - Be accurate and concise
+    - Return JSON only
+
+    Format:
+    {{
+        "answer": "...",
+        "type": "profile | transaction | policy | mixed",
+        "graph": {{
+            "labels": [...],
+            "values": [...]
+        }}
+    }}
+    """
+
+import uuid
 
 def ask_ai(user_query, user_data, transactions, summary):
-    prompt = build_prompt(user_query, user_data, transactions, summary)
 
+    # Step 1: Clean query
+    vector_query = build_vector_query(user_query, user_data)
+
+    # Step 2: Search vector DB with filters
+    results = search_data(
+        vector_query,
+        top_k=5,
+        filters={
+            "$or": [
+                {"type": "policy"},
+                {"user_id": str(user_data["id"])}
+            ]
+        }
+    )
+
+    # Step 3: Extract context properly
+    context = ""
+    documents = results.get("documents", [])
+
+    if documents:
+        for doc_list in documents:
+            if isinstance(doc_list, list):
+                context += "\n".join(doc_list) + "\n"
+
+
+    # Step 4: Build prompt
+    prompt = build_ai_prompt(
+        user_query,
+        user_data,
+        transactions,
+        summary,
+        context
+    )
+
+    # Step 5: Call AI
     response = client.chat.completions.create(
         model="openai/gpt-oss-120b",
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return response.choices[0].message.content
+    ai_response = response.choices[0].message.content
+
+    # Step 6: Store history in vector DB
+    store_data(
+        id=str(uuid.uuid4()),
+        text=f"Q: {user_query} A: {ai_response}",
+        metadata={
+            "type": "history",
+            "user_id": str(user_data["id"])
+        }
+    )
+
+    return ai_response
