@@ -17,11 +17,11 @@ async function startPayment() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ODBiM2QxYS03NGYxLTQzNGQtYjJmYy1iN2QwNzk4MjhkYjIiLCJleHAiOjE3NzQ3Nzc0MjUsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzQ3NzU2MjV9.atOkQncrqVa6diqcf7uLcXetR4W_QCgsG67td0Mdw7c"
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ODBiM2QxYS03NGYxLTQzNGQtYjJmYy1iN2QwNzk4MjhkYjIiLCJleHAiOjE3NzQ4MDI4MjEsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzQ4MDEwMjF9.A7GBZXgBuKZthI6ydYfZBZkFEHaGfcwnLhaVd8FJJcI"
     },
     body: JSON.stringify({
       product_id: "e94cc2f3-6378-44f4-a159-506aa0d8b91d",
-      amount: 100
+      amount: 1000
     })
   });
 
@@ -34,7 +34,7 @@ async function startPayment() {
 
   //  Step 2: Open Razorpay Checkout
   var options = {
-    key: "rzp_test_SWyQodx2gCdyph",
+    key: "key",
     amount: createData.amount * 100,
     currency: createData.currency,
     order_id: order_id,
@@ -47,7 +47,7 @@ async function startPayment() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ODBiM2QxYS03NGYxLTQzNGQtYjJmYy1iN2QwNzk4MjhkYjIiLCJleHAiOjE3NzQ3Nzc0MjUsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzQ3NzU2MjV9.atOkQncrqVa6diqcf7uLcXetR4W_QCgsG67td0Mdw7c"
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ODBiM2QxYS03NGYxLTQzNGQtYjJmYy1iN2QwNzk4MjhkYjIiLCJleHAiOjE3NzQ4MDI4MjEsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzQ4MDEwMjF9.A7GBZXgBuKZthI6ydYfZBZkFEHaGfcwnLhaVd8FJJcI"
         },
         body: JSON.stringify({
           transaction_id: transaction_id,

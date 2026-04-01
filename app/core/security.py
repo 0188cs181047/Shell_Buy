@@ -48,8 +48,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
         )
         return encoded_jwt
     except Exception as e:
-        print(f"Error creating access token: {e}")
-        raise
+        raise e
 
 def create_refresh_token(data: Dict[str, Any]) -> str:
     """Create a new refresh token"""
@@ -70,8 +69,7 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
         )
         return encoded_jwt
     except Exception as e:
-        print(f"Error creating refresh token: {e}")
-        raise
+        raise e
 
 def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, Any]]:
     """Verify a token and return payload if valid"""
@@ -84,19 +82,15 @@ def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, A
         
         # Check token type
         if payload.get("type") != token_type:
-            print(f"Token type mismatch: expected {token_type}, got {payload.get('type')}")
             return None
         
         return payload
         
     except jwt.ExpiredSignatureError:
-        print("Token has expired")
         return None
     except jwt.InvalidTokenError as e:
-        print(f"Invalid token: {e}")
         return None
     except Exception as e:
-        print(f"Unexpected error verifying token: {e}")
         return None
 
 def hash_password(password: str) -> str:

@@ -20,7 +20,6 @@ def get_current_user(session: SessionDep, current_user: User = Depends(get_curre
             
         return user
     except Exception as e:
-        print(f"Error fetching user: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
